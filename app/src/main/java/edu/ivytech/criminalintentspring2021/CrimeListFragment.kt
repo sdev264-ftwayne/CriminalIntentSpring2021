@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -33,7 +34,7 @@ class CrimeListFragment : Fragment() {
     }
     private var _binding: FragmentCrimeListBinding? = null
     private val binding get() = _binding!!
-    private var adapter:CrimeAdapter? = null
+    private var adapter:CrimeAdapter? = CrimeAdapter(emptyList())
 
 
     override fun onAttach(context: Context) {
@@ -41,10 +42,6 @@ class CrimeListFragment : Fragment() {
         callbacks = context as Callbacks?
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        Log.d(TAG, "Total crimes: ${crimeListViewModel.crimes.size}")
-    }
 
     companion object {
         fun newInstance(): CrimeListFragment {
@@ -61,12 +58,20 @@ class CrimeListFragment : Fragment() {
         val view = binding.root
         binding.crimeRecyclerView.layoutManager = LinearLayoutManager(context)
         //binding.crimeRecyclerView.layoutManager = GridLayoutManager(context,2)
-        updateUI()
+        binding.crimeRecyclerView.adapter = adapter
         return view
     }
 
-    private fun updateUI() {
-        val crimes = crimeListViewModel.crimes
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        crimeListViewModel.crimesLisLiveData.observe(viewLifecycleOwner,
+                {crimes ->crimes?.let {
+                    Log.i(TAG, "Got crimes ${crimes.size}")
+                    updateUI(crimes)
+                }})
+    }
+
+    private fun updateUI(crimes:List<Crime>) {
         adapter = CrimeAdapter(crimes)
         binding.crimeRecyclerView.adapter = adapter
     }
@@ -75,6 +80,7 @@ class CrimeListFragment : Fragment() {
         private lateinit var crime: Crime
         val titleTextView : TextView = itemBinding.crimeDisplayTitle
         val dateTextView : TextView = itemBinding.crimeDisplayDate
+        val image :ImageView = itemBinding.crimeSolved
         init {
             itemBinding.root.setOnClickListener(this)
         }
@@ -82,6 +88,10 @@ class CrimeListFragment : Fragment() {
             this.crime = crime
             titleTextView.text = crime.title
             dateTextView.text = crime.date.toString()
+            if(crime.isSolved)
+                image.visibility = View.VISIBLE
+            else
+                image.visibility = View.GONE
         }
 
         override fun onClick(v: View?) {

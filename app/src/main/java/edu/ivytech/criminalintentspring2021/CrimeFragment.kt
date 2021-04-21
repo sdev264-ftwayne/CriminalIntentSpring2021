@@ -14,14 +14,15 @@ import edu.ivytech.criminalintentspring2021.databinding.FragmentCrimeBinding
 import java.util.*
 
 private const val ARG_CRIME_ID = "crime_id"
-
-class CrimeFragment : Fragment() {
+private const val DIALOG_DATE = "DialogDate"
+private const val REQUEST_DATE = 0
+class CrimeFragment : Fragment(), DatePickerFragment.Callbacks {
 
     private lateinit var crime:Crime
     private var _binding: FragmentCrimeBinding? = null
     private val binding get() = _binding!!
-    private val crimeListViewModel by lazy {
-        ViewModelProvider(requireActivity()).get(CrimeListViewModel::class.java)
+    private val crimeDetailViewModel by lazy {
+        ViewModelProvider(requireActivity()).get(CrimeDetailViewModel::class.java)
     }
 
     companion object {
@@ -38,24 +39,37 @@ class CrimeFragment : Fragment() {
 
         val crimeId: UUID = arguments?.getSerializable(ARG_CRIME_ID) as UUID
         Log.d("Detail Fragment", "crime id: $crimeId")
-        crime = crimeListViewModel.getCrime(crimeId)
-        //crime = Crime()
+        crimeDetailViewModel.loadCrime(crimeId)
     }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentCrimeBinding.inflate(inflater, container, false)
         val view = binding.root
-        binding.crimeDate.apply {
-            text = crime.date.toString()
-            isEnabled = false
-        }
-        binding.crimeTitle.setText(crime.title)
-        binding.crimeSolved.isChecked = crime.isSolved
+
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        crimeDetailViewModel.crimeLiveData.observe(
+                viewLifecycleOwner,
+                {crime -> crime?.let{
+                    this.crime = crime
+                    updateUI()
+                }})
+
+    }
+
+    private fun updateUI() {
+        binding.crimeTitle.setText(crime.title)
+        binding.crimeDate.text = crime.date.toString()
+        binding.crimeSolved.isChecked = crime.isSolved
+
+
     }
 
     override fun onStart() {
@@ -81,10 +95,27 @@ class CrimeFragment : Fragment() {
                 crime.isSolved = isChecked
             }
         }
+
+        binding.crimeDate.setOnClickListener {
+            DatePickerFragment.newInstance(crime.date).apply{
+                setTargetFragment(this@CrimeFragment, REQUEST_DATE)
+                show(this@CrimeFragment.parentFragmentManager, DIALOG_DATE)
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        crimeDetailViewModel.saveCrime(crime)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onDateSelected(date: Date) {
+        crime.date = date
+        updateUI()
     }
 }

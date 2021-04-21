@@ -2,6 +2,7 @@ package edu.ivytech.criminalintentspring2021
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.lifecycle.ViewModelProvider
 import edu.ivytech.criminalintentspring2021.databinding.ActivityMainBinding
 import java.util.*
 
@@ -14,13 +15,13 @@ class MainActivity : AppCompatActivity(), CrimeListFragment.Callbacks {
         setSupportActionBar(binding.toolbar)
 
         binding.fab.setOnClickListener{view ->
+            val crimeListViewModel by lazy {
+                ViewModelProvider(this@MainActivity).get(CrimeListViewModel::class.java)
+            }
             var crime = Crime()
-            val fragment = CrimeFragment.newInstance(crime.id)
-            supportFragmentManager
-                .beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit()
+            crimeListViewModel.addCrime(crime)
+            onCrimeSelected(crime.id)
+
         }
 
         val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
